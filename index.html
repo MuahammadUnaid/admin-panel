@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f4f4;
+        }
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+            color: #fff;
+        }
+        .sidebar a {
+            color: #131212;
+        }
+        .sidebar a:hover {
+            background-color: #495057;
+        }
+        .content {
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .btn {
+            margin-top: 10px;
+        }
+        .table img {
+            max-width: 50px;
+            border-radius: 5px;
+        }
+        .uploaded-images {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
+        <nav class="sidebar flex-column p-3">
+            <h4 class="text-center">Admin Panel</h4>
+            <a href="#" id="show-products-btn" class="list-group-item list-group-item-action">
+                <i class="fas fa-box"></i> Show Products
+            </a>
+            <a href="#" id="add-mobile-btn" class="list-group-item list-group-item-action">
+                <i class="fas fa-mobile-alt"></i> Add Mobile Product
+            </a>
+            <a href="#" id="add-watch-btn" class="list-group-item list-group-item-action">
+                <i class="fas fa-watch"></i> Add Watch Product
+            </a>
+            <a href="#" id="add-airpods-btn" class="list-group-item list-group-item-action">
+                <i class="fas fa-headphones-alt"></i> Add AirPods Product
+            </a>
+        </nav>
+        <div class="content flex-fill">
+            <h1 class="mt-4">Admin Dashboard</h1>
+            <div id="product-list" class="d-none">
+                <h2>Show Products</h2>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Image</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-table-body"></tbody>
+                </table>
+            </div>
+            <div id="add-product-form" class="d-none">
+                <h2 id="form-title">Add Product</h2>
+                <form id="product-form" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="productName">Product Name</label>
+                        <input type="text" class="form-control" id="productName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productDesc">Description</label>
+                        <textarea class="form-control" id="productDesc" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="productPrice">Price</label>
+                        <input type="number" class="form-control" id="productPrice" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="thumbnailImage">Thumbnail Image</label>
+                        <input type="file" class="form-control-file" id="thumbnailImage" required accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label for="additionalImages">Additional Images</label>
+                        <input type="file" class="form-control-file" id="additionalImages" multiple required accept="image/*">
+                        <div class="uploaded-images" id="uploadedImagesPreview"></div>
+                    </div>
+                    <div class="form-group d-none" id="storage-group">
+                        <label for="productStorage">Storage Options (comma-separated)</label>
+                        <input type="text" class="form-control" id="productStorage" placeholder="E.g., 64GB, 128GB">
+                    </div>
+                    <button type="submit" class="btn btn-success">Add Product</button>
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let products = [];
+            let currentEditIndex = null;
+            let productType = "";
+
+            const showForm = (type) => {
+                productType = type;
+                document.getElementById("product-form").reset();
+                document.getElementById("uploadedImagesPreview").innerHTML = "";
+                document.getElementById("add-product-form").classList.remove("d-none");
+                document.getElementById("product-list").classList.add("d-none");
+                document.getElementById("storage-group").classList.toggle("d-none", type !== "Mobile");
+                document.getElementById("form-title").textContent = `Add ${type} Product`;
+            };
+
+            const hideForm = () => {
+                document.getElementById("add-product-form").classList.add("d-none");
+                document.getElementById("product-list").classList.remove("d-none");
+            };
+
+            const loadProducts = () => {
+                const tableBody = document.getElementById("product-table-body");
+                tableBody.innerHTML = "";
+                products.forEach((product, index) => {
+                    const row = `<tr>
+                                    <td>${product.name}</td>
+                                    <td>${product.desc}</td>
+                                    <td>${product.price}</td>
+                                    <td><img src="${product.image}" alt="${product.name}"></td>
+                                    <td>
+                                        <button class="btn btn-warning btn-sm" onclick="editProduct(${index})">Edit</button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteProduct(${index})">Delete</button>
+                                    </td>
+                                 </tr>`;
+                    tableBody.insertAdjacentHTML("beforeend", row);
+                });
+            };
+
+            window.editProduct = (index) => {
+                currentEditIndex = index;
+                const product = products[index];
+                showForm(product.type);
+                document.getElementById("productName").value = product.name;
+                document.getElementById("productDesc").value = product.desc;
+                document.getElementById("productPrice").value = product.price;
+                document.getElementById("uploadedImagesPreview").innerHTML = `
+                    <p>Thumbnail: <img src="${product.image}" alt="${product.name}" style="max-width: 50px;"></p>
+                    <p>Additional Images: ${product.additionalImages.map(img => `<img src="${img}" alt="Image" style="max-width: 50px;">`).join(", ")}</p>
+                `;
+                if (product.type === "Mobile") {
+                    document.getElementById("productStorage").value = product.storage.join(", ");
+                }
+            };
+
+            window.deleteProduct = (index) => {
+                products.splice(index, 1);
+                loadProducts();
+            };
+
+            document.getElementById("product-form").addEventListener("submit", function(e) {
+                e.preventDefault();
+                const thumbnailImage = document.getElementById("thumbnailImage").files[0];
+                const additionalImages = Array.from(document.getElementById("additionalImages").files);
+                
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const product = {
+                        name: document.getElementById("productName").value,
+                        desc: document.getElementById("productDesc").value,
+                        price: document.getElementById("productPrice").value,
+                        image: reader.result,
+                        additionalImages: [],
+                        type: productType,
+                        storage: productType === "Mobile" ? document.getElementById("productStorage").value.split(",").map(s => s.trim()) : []
+                    };
+                    const promises = additionalImages.map((file) => {
+                        return new Promise((resolve) => {
+                            const imgReader = new FileReader();
+                            imgReader.onloadend = () => resolve(imgReader.result);
+                            imgReader.readAsDataURL(file);
+                        });
+                    });
+
+                    Promise.all(promises).then((imageUrls) => {
+                        product.additionalImages = imageUrls;
+                        if (currentEditIndex !== null) {
+                            products[currentEditIndex] = product;
+                            currentEditIndex = null;
+                        } else {
+                            products.push(product);
+                        }
+                        hideForm();
+                        loadProducts();
+                    });
+                };
+
+                if (thumbnailImage) {
+                    reader.readAsDataURL(thumbnailImage);
+                }
+            });
+
+            document.getElementById("cancel-btn").addEventListener("click", hideForm);
+
+            document.getElementById("show-products-btn").addEventListener("click", () => {
+                hideForm();
+                loadProducts();
+            });
+
+            document.getElementById("add-mobile-btn").addEventListener("click", () => showForm("Mobile"));
+            document.getElementById("add-watch-btn").addEventListener("click", () => showForm("Watch"));
+            document.getElementById("add-airpods-btn").addEventListener("click", () => showForm("AirPods"));
+        });
+    </script>
+</body>
